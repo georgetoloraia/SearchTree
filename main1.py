@@ -45,13 +45,32 @@ def load_progress():
         return 73786976294838206464, 147573952589676412927  # Default range if no progress file exists
 
 
+from ecdsa import SigningKey, SECP256k1
+import hashlib
+
+
 def private_key_to_hash160(private_key):
-    pk = private_key.to_bytes(32, byteorder="big")
-    prefix = b"\x02" if private_key % 2 == 0 else b"\x03"
-    compressed_pubkey = prefix + pk[:32]
+    # Convert the private key to bytes
+    pk_bytes = private_key.to_bytes(32, byteorder="big")
+    
+    # Generate the public key using the SECP256k1 curve
+    signing_key = SigningKey.from_string(pk_bytes, curve=SECP256k1)
+    verifying_key = signing_key.verifying_key
+    
+    # Get the uncompressed public key
+    uncompressed_pubkey = b'\x04' + verifying_key.to_string()
+    
+    # Compress the public key
+    prefix = b'\x02' if uncompressed_pubkey[-1] % 2 == 0 else b'\x03'
+    compressed_pubkey = prefix + verifying_key.to_string()[:32]
+    
+    # Hash the compressed public key: SHA256 followed by RIPEMD160
     sha256 = hashlib.sha256(compressed_pubkey).digest()
     ripemd160 = hashlib.new("ripemd160", sha256).digest()
+    
+    # Return the RIPEMD160 hash as a hexadecimal string
     return ripemd160.hex()
+
 
 
 def build_tree_with_files(min_key, max_key, depth=0, max_depth=4):
@@ -77,7 +96,55 @@ def build_tree_with_files(min_key, max_key, depth=0, max_depth=4):
     return root
 
 
-def search_tree_with_files(root, target_hash160):
+# def search_tree_with_files(root, target_hash160):
+#     if root is None:
+#         return None
+
+#     if isinstance(root, str):  # Load node from file if needed
+#         root = TreeNode.load_from_file(root)
+
+#     mid_key = (root.min_key + root.max_key) // 2
+#     try:
+#         hash160 = private_key_to_hash160(mid_key)
+#         print(f"\n\n{mid_key}\n{hash160}\n{target_hash160}\n")
+#         # print(f"Checking key {mid_key}: {hash160}")  # Debug output
+#         if hash160 == target_hash160:
+#             return mid_key  # Found the key!
+#     except Exception as e:
+#         print(f"Error processing key {mid_key}: {e}")
+#         return None
+
+#     # Search left subtree
+#     if isinstance(root.left, str):
+#         left_file = root.left
+#         found = search_tree_with_files(TreeNode.load_from_file(left_file), target_hash160)
+#         if found is not None:
+#             return found
+#         os.remove(left_file)  # Delete file after use
+#     else:
+#         found = search_tree_with_files(root.left, target_hash160)
+#         if found is not None:
+#             return found
+
+#     # Search right subtree
+#     if isinstance(root.right, str):
+#         right_file = root.right
+#         found = search_tree_with_files(TreeNode.load_from_file(right_file), target_hash160)
+#         if found is not None:
+#             return found
+#         os.remove(right_file)  # Delete file after use
+#     else:
+#         found = search_tree_with_files(root.right, target_hash160)
+#         if found is not None:
+#             return found
+
+#     return None
+
+
+def search_tree_with_files(root, target_hash160, processed_files=None):
+    if processed_files is None:
+        processed_files = set()  # Keep track of processed files
+
     if root is None:
         return None
 
@@ -87,38 +154,45 @@ def search_tree_with_files(root, target_hash160):
     mid_key = (root.min_key + root.max_key) // 2
     try:
         hash160 = private_key_to_hash160(mid_key)
-        print(f"Checking key {mid_key}: {hash160}")  # Debug output
-        if hash160 == target_hash160:
+        # print(f"\n\n{mid_key}\n{hash160}\n{target_hash160}\n")
+        if hash160 == target_hash160 or hash160.startswith("739437"):
+            print(f"{hash160}\n{mid_key}")
             return mid_key  # Found the key!
     except Exception as e:
         print(f"Error processing key {mid_key}: {e}")
         return None
 
     # Search left subtree
+    found = None
     if isinstance(root.left, str):
         left_file = root.left
-        found = search_tree_with_files(TreeNode.load_from_file(left_file), target_hash160)
-        if found is not None:
-            return found
-        os.remove(left_file)  # Delete file after use
+        found = search_tree_with_files(TreeNode.load_from_file(left_file), target_hash160, processed_files)
+        if found is None:
+            processed_files.add(left_file)  # Mark file as processed
     else:
-        found = search_tree_with_files(root.left, target_hash160)
-        if found is not None:
-            return found
+        found = search_tree_with_files(root.left, target_hash160, processed_files)
 
-    # Search right subtree
-    if isinstance(root.right, str):
-        right_file = root.right
-        found = search_tree_with_files(TreeNode.load_from_file(right_file), target_hash160)
-        if found is not None:
-            return found
-        os.remove(right_file)  # Delete file after use
-    else:
-        found = search_tree_with_files(root.right, target_hash160)
-        if found is not None:
-            return found
+    # If not found in the left, search right subtree
+    if found is None:
+        if isinstance(root.right, str):
+            right_file = root.right
+            found = search_tree_with_files(TreeNode.load_from_file(right_file), target_hash160, processed_files)
+            if found is None:
+                processed_files.add(right_file)  # Mark file as processed
+        else:
+            found = search_tree_with_files(root.right, target_hash160, processed_files)
 
-    return None
+    # Delete files that are marked as processed
+    if root.left in processed_files and root.right in processed_files:
+        if isinstance(root.left, str):
+            os.remove(root.left)
+            processed_files.discard(root.left)
+        if isinstance(root.right, str):
+            os.remove(root.right)
+            processed_files.discard(root.right)
+
+    return found
+
 
 
 def search_in_expanding_range(target_hash160, initial_min_key, initial_max_key, step_size):
@@ -127,15 +201,15 @@ def search_in_expanding_range(target_hash160, initial_min_key, initial_max_key, 
     found = False
 
     while not found:
-        print(f"Searching in range: {min_key} to {max_key}")
+        # print(f"Searching in range: {min_key} to {max_key}")
         
         # Search in the current range
         found = search_tree_with_files(build_tree_with_files(min_key, max_key), target_hash160)
         
         if not found:
-            print(f"Expanding search range by {step_size}")
+            # print(f"Expanding search range by {step_size}")
             min_key += step_size
-            max_key += step_size  # Expand both ends of the range
+            max_key -= step_size  # Expand both ends of the range
             save_progress(min_key, max_key)  # Save progress
 
 
@@ -146,7 +220,9 @@ if __name__ == "__main__":
     # Set the initial range and step size
     initial_min_key = min_key
     initial_max_key = max_key
-    step_size = 10000000000000000000  # Example step size (you can adjust this)
+    step_size = 129
+    # step_size = max(1, (max_key - min_key))  # Adjust dynamically
+
 
     # The target hash160 you're searching for (replace with your actual value)
     target_hash160 = "739437bb3dd6d1983e66629c5f08c70e52769371"  # Example hash160
