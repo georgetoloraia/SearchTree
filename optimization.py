@@ -13,7 +13,7 @@ FILES_DIR = "key_ranges"
 # for example
 MIN_KEY = 737731
 MAX_KEY = 14752454
-STEP_SIZE = 10
+STEP_SIZE = 100
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
