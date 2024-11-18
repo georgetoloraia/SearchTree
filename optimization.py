@@ -5,10 +5,15 @@ from concurrent.futures import ThreadPoolExecutor
 from main1 import private_key_to_hash160
 
 # Constants
-MIN_KEY = 73786976294838206464
-MAX_KEY = 147573952589676412927
-STEP_SIZE = 1234567890
+# MIN_KEY = 73786976294838206464
+# MAX_KEY = 147573952589676412927
+# STEP_SIZE = 1234567890
 FILES_DIR = "key_ranges"
+
+# for example
+MIN_KEY = 737731
+MAX_KEY = 14752454
+STEP_SIZE = 10
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
@@ -78,5 +83,8 @@ if __name__ == "__main__":
     save_ranges_to_files(MIN_KEY, MAX_KEY, STEP_SIZE)
 
     # Step 2: Process files to find the key
-    target_hash = "739437bb3dd6d1983e66629c5f08c70e52769371"  # Example target hash160
+    # target_hash = "739437bb3dd6d1983e66629c5f08c70e52769371"
+
+    #for example
+    target_hash = "3f08b882e3f892c572a7c90505e2904829f51a7c"
     process_files_parallel(target_hash, example_process_function, max_workers=8)
