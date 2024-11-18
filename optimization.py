@@ -86,5 +86,5 @@ if __name__ == "__main__":
     # target_hash = "739437bb3dd6d1983e66629c5f08c70e52769371"
 
     #for example
-    target_hash = "3f08b882e3f892c572a7c90505e2904829f51a7c"
+    target_hash = "5999a923401bd311e7e4a9dfa51576259e076016"
     process_files_parallel(target_hash, example_process_function, max_workers=8)
