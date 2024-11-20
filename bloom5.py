@@ -1,9 +1,10 @@
-import os
+# import os
 import logging
-import numpy as np
+# import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 import time
 from main1 import private_key_to_hash160
+import random
 
 # Constants
 MIN_KEY = 73786976294838206464
@@ -21,8 +22,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 
 
 # Generate random keys using numpy for efficiency
+# def generate_random_keys(min_key, max_key, num_keys):
+#     return np.random.randint(min_key, max_key + 1, size=num_keys, dtype=np.uint64)
+
+# Generate random keys using Python's `random` module to avoid NumPy's uint64 limitation
 def generate_random_keys(min_key, max_key, num_keys):
-    return np.random.randint(min_key, max_key + 1, size=num_keys, dtype=np.uint64)
+    return [random.randint(min_key, max_key) for _ in range(num_keys)]
+
 
 
 # Check a batch of keys for matches with the target prefix
