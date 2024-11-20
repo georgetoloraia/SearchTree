@@ -8,12 +8,12 @@ from main1 import private_key_to_hash160
 TARGET_HASH160 = "739437bb3dd6d1983e66629c5f08c70e52769371"
 MIN_KEY = 73786976294838206464
 MAX_KEY = 147573952589676412927
-PREFIX_LENGTH = 2  # Number of bytes to match in prefix
+PREFIX_LENGTH = 3  # Number of bytes to match in prefix
 INITIAL_SAMPLES = 1000
 GROWTH_FACTOR = 2
 MAX_SAMPLES = 512000
 NUM_THREADS = 8  # Number of parallel threads to use
-MATCH_THRESHOLD = 5  # Minimum matching indices to save range
+MATCH_THRESHOLD = 12  # Minimum matching indices to save range
 PREFIX_FILE = "prefixes.txt"  # File to store promising key ranges
 
 # Logging setup
